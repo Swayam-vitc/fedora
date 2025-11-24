@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from "react
 
 export interface Appointment {
   _id?: string;
+  id?: string;
   doctor: string;
   date: string;
   time: string;
@@ -18,30 +19,55 @@ const AppointmentsContext = createContext<AppointmentsContextType | undefined>(u
 
 export const AppointmentsProvider = ({ children }: { children: ReactNode }) => {
   // API URL from environment variable
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
   const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   // Fetch from DB on page load
   useEffect(() => {
     const fetchAppointments = async () => {
-      const res = await fetch(`${API_URL}/api/appointments`);
-      const data = await res.json();
-      setAppointments(data);
+      const userStr = localStorage.getItem("user");
+      const token = userStr ? JSON.parse(userStr).token : null;
+
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/api/appointments`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setAppointments(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch appointments", error);
+      }
     };
     fetchAppointments();
   }, []);
 
   // Add new appointment to DB
   const addAppointment = async (apt: Appointment) => {
-    const res = await fetch(`${API_URL}/api/appointments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(apt),
-    });
+    const userStr = localStorage.getItem("user");
+    const token = userStr ? JSON.parse(userStr).token : null;
 
-    const data = await res.json();
-    setAppointments((prev) => [...prev, data]);
+    try {
+      const res = await fetch(`${API_URL}/api/appointments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(apt),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setAppointments((prev) => [...prev, data]);
+      }
+    } catch (error) {
+      console.error("Failed to add appointment", error);
+    }
   };
 
   return (

@@ -12,7 +12,7 @@ const SignIn = () => {
   const { toast } = useToast();
 
   // API URL from environment variable
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -106,7 +106,7 @@ const SignIn = () => {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            
+
             {/* Email */}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>

@@ -1,12 +1,66 @@
+import { useState, useEffect } from "react";
 import PatientSidebar from "@/components/PatientSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Video, Clock, Calendar, User } from "lucide-react";
+import { Video, Clock, Calendar, User, MessageSquare } from "lucide-react";
+import VideoCall from "@/components/VideoCall";
+import ChatBox from "@/components/ChatBox";
+import { useNavigate } from "react-router-dom";
 
 const PatientTelemedicine = () => {
-  const consultations = [
-   
-  ];
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [showVideoCall, setShowVideoCall] = useState<string | null>(null);
+  const [showChat, setShowChat] = useState<string | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<any>(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchAppointments();
+  }, []);
+
+  const fetchAppointments = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      const response = await fetch(`http://localhost:5000/api/appointments?patientId=${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAppointments(data);
+      }
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    }
+  };
+
+  const handleStartCall = (appointment: any) => {
+    setSelectedDoctor({
+      id: appointment.patientId || "doctor-id",
+      name: appointment.doctor,
+    });
+    setShowVideoCall(appointment._id || appointment.id);
+  };
+
+  const handleOpenChat = (appointment: any) => {
+    setSelectedDoctor({
+      id: appointment.patientId || "doctor-id",
+      name: appointment.doctor,
+    });
+    setShowChat(appointment._id || appointment.id);
+  };
+
+  // Filter upcoming appointments (today and future)
+  const upcomingAppointments = appointments.filter((apt) => {
+    const aptDate = new Date(apt.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return aptDate >= today;
+  });
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -27,23 +81,27 @@ const PatientTelemedicine = () => {
                 <h3 className="text-2xl font-bold">Start Instant Consultation</h3>
                 <p className="text-muted-foreground mt-2">Connect with available doctors right now</p>
               </div>
-              <Button size="lg" className="bg-gradient-to-r from-primary to-medical-teal">
-                <Video className="mr-2 h-5 w-5" />
-                Start Video Call
+              <Button
+                size="lg"
+                className="bg-gradient-to-r from-primary to-medical-teal"
+                onClick={() => navigate("/patient/doctors")}
+              >
+                <User className="mr-2 h-5 w-5" />
+                Find a Doctor
               </Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Upcoming Consultations</CardTitle>
+              <CardTitle>Your Appointments - Video Consultations</CardTitle>
             </CardHeader>
             <CardContent>
-              {consultations.length > 0 ? (
+              {upcomingAppointments.length > 0 ? (
                 <div className="space-y-3">
-                  {consultations.map((consultation) => (
+                  {upcomingAppointments.map((appointment) => (
                     <div
-                      key={consultation.id}
+                      key={appointment._id || appointment.id}
                       className="flex items-center justify-between p-4 rounded-lg border border-border/50 hover:bg-secondary/50 transition-colors"
                     >
                       <div className="flex items-center gap-4">
@@ -51,30 +109,45 @@ const PatientTelemedicine = () => {
                           <User className="h-7 w-7 text-primary-foreground" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-lg">{consultation.doctor}</h4>
-                          <p className="text-sm text-muted-foreground">{consultation.specialty}</p>
+                          <h4 className="font-semibold text-lg">{appointment.doctor}</h4>
+                          <p className="text-sm text-muted-foreground">{appointment.type || "Consultation"}</p>
                           <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {consultation.date}
+                              {appointment.date}
                             </span>
                             <span className="flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {consultation.time}
+                              {appointment.time}
                             </span>
                           </div>
                         </div>
                       </div>
-                      <Button className="bg-gradient-to-r from-primary to-medical-teal">
-                        <Video className="h-4 w-4 mr-2" />
-                        Join Call
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          className="bg-gradient-to-r from-primary to-medical-teal"
+                          onClick={() => handleStartCall(appointment)}
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          Start Call
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => handleOpenChat(appointment)}
+                        >
+                          <MessageSquare className="h-4 w-4 mr-2" />
+                          Chat
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-muted-foreground">No upcoming consultations</p>
+                  <p className="text-muted-foreground mb-4">No upcoming appointments</p>
+                  <Button onClick={() => navigate("/patient/appointments")}>
+                    Schedule an Appointment
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -86,7 +159,11 @@ const PatientTelemedicine = () => {
                 <CardTitle>Past Consultations</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground text-center py-4">No past consultations</p>
+                <p className="text-muted-foreground text-center py-4">
+                  {appointments.length > upcomingAppointments.length
+                    ? `${appointments.length - upcomingAppointments.length} past consultations`
+                    : "No past consultations"}
+                </p>
               </CardContent>
             </Card>
 
@@ -106,6 +183,10 @@ const PatientTelemedicine = () => {
                   </div>
                   <div className="flex gap-3">
                     <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary">3</div>
+                    <p>Chat with your doctor anytime</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary">4</div>
                     <p>Receive diagnosis and e-prescription</p>
                   </div>
                 </div>
@@ -114,6 +195,36 @@ const PatientTelemedicine = () => {
           </div>
         </div>
       </main>
+
+      {/* Video Call Modal */}
+      {showVideoCall && selectedDoctor && (
+        <VideoCall
+          receiverId={selectedDoctor.id}
+          receiverName={selectedDoctor.name}
+          roomId={showVideoCall}
+          onClose={() => {
+            setShowVideoCall(null);
+            setSelectedDoctor(null);
+          }}
+        />
+      )}
+
+      {/* Chat Modal */}
+      {showChat && selectedDoctor && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl">
+            <ChatBox
+              appointmentId={showChat}
+              receiverId={selectedDoctor.id}
+              receiverName={selectedDoctor.name}
+              onClose={() => {
+                setShowChat(null);
+                setSelectedDoctor(null);
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

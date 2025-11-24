@@ -2,12 +2,43 @@ import PatientSidebar from "@/components/PatientSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Pill, Calendar, User } from "lucide-react";
 
+import { useState, useEffect } from "react";
+
+interface Prescription {
+  _id: string;
+  medication: string;
+  doctor: string;
+  dosage: string;
+  frequency: string;
+  startDate: string;
+  endDate: string;
+  status: string;
+}
+
 const PatientPrescriptions = () => {
-  const prescriptions = [
-    { id: 1, medication: "Amoxicillin 500mg", doctor: "Dr. Sarah Smith", dosage: "3 times daily", duration: "7 days", date: "Jan 15, 2024", status: "Active" },
-    { id: 2, medication: "Ibuprofen 400mg", doctor: "Dr. Mike Johnson", dosage: "As needed", duration: "30 days", date: "Jan 10, 2024", status: "Active" },
-    { id: 3, medication: "Vitamin D3", doctor: "Dr. Sarah Smith", dosage: "Once daily", duration: "90 days", date: "Dec 20, 2023", status: "Active" },
-  ];
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+
+  useEffect(() => {
+    const fetchPrescriptions = async () => {
+      const userStr = localStorage.getItem("user");
+      const token = userStr ? JSON.parse(userStr).token : null;
+      if (!token) return;
+
+      try {
+        const res = await fetch(`${API_URL}/api/prescriptions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPrescriptions(data);
+        }
+      } catch (error) {
+        console.error("Error fetching prescriptions:", error);
+      }
+    };
+    fetchPrescriptions();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -21,7 +52,7 @@ const PatientPrescriptions = () => {
 
           <div className="grid gap-4">
             {prescriptions.map((prescription) => (
-              <Card key={prescription.id} className="border-border/50">
+              <Card key={prescription._id} className="border-border/50">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex gap-4">
@@ -38,10 +69,10 @@ const PatientPrescriptions = () => {
                         </div>
                         <div className="grid gap-1">
                           <p className="text-sm"><span className="font-medium">Dosage:</span> {prescription.dosage}</p>
-                          <p className="text-sm"><span className="font-medium">Duration:</span> {prescription.duration}</p>
+                          <p className="text-sm"><span className="font-medium">Frequency:</span> {prescription.frequency}</p>
                           <p className="text-sm flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            Started: {prescription.date}
+                            Start: {prescription.startDate} - End: {prescription.endDate}
                           </p>
                         </div>
                       </div>

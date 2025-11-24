@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DoctorSidebar from "@/components/DoctorSidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, Activity, AlertCircle, Clock } from "lucide-react";
@@ -7,6 +8,7 @@ import { useAppointments } from "@/context/AppointmentsContext";
 const DoctorDashboard = () => {
   const { appointments } = useAppointments();
   const [userName, setUserName] = useState("Doctor");
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Load user name from localStorage
@@ -14,12 +16,19 @@ const DoctorDashboard = () => {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
+        if (user.role === "patient") {
+          navigate("/patient/dashboard");
+          return;
+        }
         setUserName(user.name || "Doctor");
       } catch (error) {
         console.error("Error parsing user data:", error);
+        navigate("/signin");
       }
+    } else {
+      navigate("/signin");
     }
-  }, []);
+  }, [navigate]);
 
   const stats = [
     {

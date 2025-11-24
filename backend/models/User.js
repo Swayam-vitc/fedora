@@ -30,6 +30,19 @@ const userSchema = new mongoose.Schema(
     specialization: {
       type: String, // only relevant for doctors
     },
+    // Doctor Profile Fields
+    specialty: { type: String }, // Primary medical specialty
+    qualifications: [{ type: String }], // Array of degrees/certifications
+    experience: { type: Number }, // Years of experience
+    bio: { type: String }, // Profile description
+    consultationFee: { type: Number }, // Fee per consultation
+    rating: { type: Number, default: 0 }, // Average rating
+    availability: {
+      type: Map,
+      of: [String], // e.g., { "Monday": ["9:00-12:00", "14:00-17:00"] }
+    },
+    profileImage: { type: String }, // URL to profile photo
+    isAvailable: { type: Boolean, default: true }, // Online status
   },
   { timestamps: true }
 );
